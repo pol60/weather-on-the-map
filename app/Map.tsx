@@ -3,6 +3,14 @@ import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaf
 import { useState } from "react";
 import "leaflet/dist/leaflet.css";
 import React from "react";
+import L from "leaflet";
+
+// Фикс для корректного отображения маркера на всех устройствах
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "/marker-icon.png",
+  iconUrl: "/marker-icon.png",
+  shadowUrl: "/marker-shadow.png",
+});
 
 interface MapProps {
   onSelect?: (lat: number, lon: number, city: string) => void;
@@ -47,6 +55,7 @@ function WeatherPopup({ lat, lon, city }: { lat: number; lon: number; city: stri
 function LocationMarker({ onSelect }: { onSelect?: (lat: number, lon: number, city: string) => void }) {
   const [position, setPosition] = useState<[number, number] | null>(null);
   const [city, setCity] = useState<string>("");
+  const markerRef = React.useRef<any>(null);
 
   useMapEvents({
     click: async (e) => {
@@ -57,11 +66,16 @@ function LocationMarker({ onSelect }: { onSelect?: (lat: number, lon: number, ci
       const cityName = data.address?.city || data.address?.town || data.address?.village || data.address?.state || "";
       setCity(cityName);
       onSelect?.(e.latlng.lat, e.latlng.lng, cityName);
+      setTimeout(() => {
+        if (markerRef.current) {
+          markerRef.current.openPopup();
+        }
+      }, 0);
     },
   });
 
   return position === null ? null : (
-    <Marker position={position}>
+    <Marker position={position} ref={markerRef}>
       <Popup autoPan={true} closeButton={false}>
         <WeatherPopup lat={position[0]} lon={position[1]} city={city} />
       </Popup>
